@@ -10,7 +10,7 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("DeskPause")]
 [assembly: AssemblyDescription("Desktop input guard for unattended work")]
 [assembly: AssemblyProduct("DeskPause")]
-[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
 
 namespace DeskPause
 {
@@ -19,9 +19,11 @@ namespace DeskPause
         internal event Action<int> HotKey;
         internal event Action AuthenticatedUnlock;
         internal event Action<int> SessionChanged;
+        internal event Action DisplaysChanged;
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == 0x0312 && HotKey != null) HotKey(m.WParam.ToInt32());
+            if (m.Msg == 0x007e && DisplaysChanged != null) BeginInvoke(DisplaysChanged);
             if (m.Msg == 0x02B1)
             {
                 int change = m.WParam.ToInt32();
@@ -35,6 +37,8 @@ namespace DeskPause
     internal sealed class TrayApp : ApplicationContext
     {
         private readonly MessageWindow window = new MessageWindow();
+        private readonly ActiveIndicator indicator = new ActiveIndicator();
+        private readonly StartupRegistration startup = new StartupRegistration(StartupRegistration.RunKey, Application.ExecutablePath);
         private readonly NotifyIcon tray = new NotifyIcon();
         private readonly ContextMenuStrip menu = new ContextMenuStrip();
         private readonly ToolStripMenuItem arm, settings, check, exit;
@@ -55,6 +59,7 @@ namespace DeskPause
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows session recovery could not be initialized. Reopen DeskPause.");
             window.HotKey += delegate(int id) { if (id == hotKeyId) Arm(); };
             window.AuthenticatedUnlock += Release;
+            window.DisplaysChanged += indicator.RefreshDisplays;
             // A partial attempt should never span a lock or remote session change.
             window.SessionChanged += delegate(int change)
             {
@@ -106,12 +111,17 @@ namespace DeskPause
             return Native.RegisterHotKey(window.Handle, id, value.Mods | 0x4000, (uint)value.Key);
         }
 
-        private string Commit(Preferences next)
+        private string Commit(Preferences next, bool? startAtSignIn)
         {
             bool changed = hotKeyId == 0 || prefs == null || next.Mods != prefs.Mods || next.Key != prefs.Key;
             int newId = hotKeyId == 1 ? 2 : 1;
             if (changed && !Register(next, newId)) return "Windows or another app already uses that shortcut. Choose a different one.";
-            try { next.Save(Preferences.FileName); }
+            try
+            {
+                Action save = delegate { next.Save(Preferences.FileName); };
+                if (startAtSignIn.HasValue) startup.Save(startAtSignIn.Value, save);
+                else save();
+            }
             catch { if (changed) Native.UnregisterHotKey(window.Handle, newId); throw; }
             if (changed)
             {
@@ -128,7 +138,10 @@ namespace DeskPause
             if (guard != null || waiting) return;
             if (checkWindow != null) { checkWindow.Activate(); return; }
             if (dialog != null) { dialog.Activate(); return; }
-            using (dialog = new SettingsForm(prefs, Commit, notice))
+            bool? startAtSignIn = null;
+            try { startAtSignIn = startup.Enabled; }
+            catch (Exception) { notice = ((notice ?? "") + " Windows startup settings are unavailable.").Trim(); }
+            using (dialog = new SettingsForm(prefs, startAtSignIn, Commit, notice))
             {
                 dialog.Icon = idleIcon;
                 if (dialog.ShowDialog() == DialogResult.OK) Notify("Ready. Arm with " + prefs.Shortcut + ".");
@@ -188,13 +201,17 @@ namespace DeskPause
                     return;
                 }
                 waiting = false;
-                entry = new PinEntry(delegate(byte[] candidate) { pendingDigits = candidate; });
+                entry = new PinEntry(prefs.PinLength, delegate(byte[] candidate) { pendingDigits = candidate; });
                 guard = new InputGuard(entry, IntPtr.Zero);
-                try { guard.Start(); }
+                try
+                {
+                    guard.Start();
+                    indicator.Show(prefs.FadeIndicator);
+                }
                 catch (Win32Exception ex) { Release(); Notify("Could not arm. " + ex.Message); return; }
                 RefreshTray();
-                Notify("Armed. Type your seven-digit PIN to resume.");
             }
+            indicator.Tick();
             if (pendingDigits != null)
             {
                 byte[] digits = pendingDigits;
@@ -241,6 +258,7 @@ namespace DeskPause
         private void Release()
         {
             tick.Stop();
+            indicator.Hide();
             epoch++;
             CancelCandidate();
             if (guard != null) guard.Dispose();

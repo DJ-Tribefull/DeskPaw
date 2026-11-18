@@ -28,11 +28,23 @@ internal static class Checks
     static int Main(string[] args)
     {
         var prefs = new Preferences();
-        Assert(!Preferences.SevenDigits("123456"), "short");
-        Assert(!Preferences.SevenDigits("12345678"), "long");
-        Assert(!Preferences.SevenDigits("１２３４５６７"), "non ascii");
-        Assert(!Preferences.SevenDigits("012 456"), "non digit");
-        Assert(Preferences.SevenDigits("0022446"), "leading zero");
+        Assert(!Preferences.ValidPin(null) && !Preferences.ValidPin(""), "empty");
+        Assert(!Preferences.ValidPin("123"), "short");
+        Assert(!Preferences.ValidPin("0123456789012345"), "long");
+        Assert(!Preferences.ValidPin("１２３４５６７"), "non ascii");
+        Assert(!Preferences.ValidPin("012 456"), "non digit");
+        Assert(Preferences.ValidPin("0022446"), "leading zero");
+        for (int length = 4; length <= 15; length++)
+        {
+            string sample = new string('0', length - 1) + "9";
+            Assert(Preferences.ValidPin(sample), "accepted PIN length " + length);
+            byte[] received = null;
+            var input = new PinEntry(length, delegate(byte[] digits) { received = digits; });
+            Enter(input, sample.Substring(0, length - 1), 10);
+            Assert(received == null, "no premature submission at length " + length);
+            Tap(input, '9', 100);
+            Assert(Encoding.ASCII.GetString(received) == sample, "full PIN delivered at length " + length);
+        }
         prefs.SetPin("0022446");
         Assert(prefs.Matches(Encoding.ASCII.GetBytes("0022446")), "PIN match");
         Assert(!prefs.Matches(Encoding.ASCII.GetBytes("0022447")), "incorrect PIN rejected");
@@ -50,6 +62,24 @@ internal static class Checks
             loaded = Preferences.Load(path);
             Assert(loaded.Shortcut == "Ctrl+Shift+0", "atomic hotkey replacement");
             Assert(Convert.ToBase64String(loaded.Salt) == Convert.ToBase64String(other.Salt), "atomic verifier replacement");
+            byte[] legacy = new byte[51];
+            legacy[0] = 1; legacy[1] = (byte)prefs.Mods; legacy[2] = (byte)prefs.Key;
+            Buffer.BlockCopy(prefs.Salt, 0, legacy, 3, 16);
+            Buffer.BlockCopy(prefs.Hash, 0, legacy, 19, 32);
+            File.WriteAllBytes(path, ProtectedData.Protect(legacy, null, DataProtectionScope.CurrentUser));
+            loaded = Preferences.Load(path);
+            Assert(loaded.PinLength == 7 && !loaded.FadeIndicator && loaded.Matches(Encoding.ASCII.GetBytes("0022446")), "1.1 settings load");
+            loaded.FadeIndicator = true;
+            loaded.Save(path);
+            loaded = Preferences.Load(path);
+            Assert(loaded.PinLength == 7 && loaded.FadeIndicator && loaded.Matches(Encoding.ASCII.GetBytes("0022446")), "preserve old PIN when saving new option");
+            foreach (string sample in new[] { "0007", "012345678901234" })
+            {
+                loaded.SetPin(sample);
+                loaded.Save(path);
+                loaded = Preferences.Load(path);
+                Assert(loaded.PinLength == sample.Length && loaded.Matches(Encoding.ASCII.GetBytes(sample)), "persist PIN length " + sample.Length);
+            }
             var bytes = File.ReadAllBytes(path);
             bytes[bytes.Length-1] ^= 1;
             File.WriteAllBytes(path, bytes);
@@ -61,7 +91,7 @@ internal static class Checks
 
         byte[] captured = null;
         int submissions = 0;
-        var entry = new PinEntry(delegate(byte[] b){ captured = b; submissions++; });
+        var entry = new PinEntry(prefs.PinLength, delegate(byte[] b){ captured = b; submissions++; });
         Tap(entry, '8', 1); Tap(entry, (int)Keys.Escape, 3);
         Enter(entry, "01", 5); Tap(entry, (int)Keys.Back, 14);
         Tap(entry, 0x60, 16);

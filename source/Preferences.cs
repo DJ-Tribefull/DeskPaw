@@ -12,6 +12,9 @@ namespace DeskPause
         internal uint Mods = 3; // Ctrl + Alt
         internal Keys Key = Keys.F9;
         internal byte[] Salt, Hash;
+        internal const int MinPinLength = 4, MaxPinLength = 15;
+        internal int PinLength;
+        internal bool FadeIndicator;
         private const int Rounds = 200000;
         internal static string Folder
         {
@@ -58,9 +61,9 @@ namespace DeskPause
             return key == Keys.Oem102 ? "ISO " + label : label;
         }
 
-        internal static bool SevenDigits(string value)
+        internal static bool ValidPin(string value)
         {
-            if (value == null || value.Length != 7) return false;
+            if (value == null || value.Length < MinPinLength || value.Length > MaxPinLength) return false;
             foreach (char c in value) if (c < '0' || c > '9') return false;
             return true;
         }
@@ -82,11 +85,11 @@ namespace DeskPause
 
         internal void SetPin(string text)
         {
-            if (!SevenDigits(text)) throw new ArgumentException("Enter exactly seven digits.");
+            if (!ValidPin(text)) throw new ArgumentException("Invalid PIN. Enter 4–15 digits (0–9).");
             Salt = new byte[16];
             using (var random = RandomNumberGenerator.Create()) random.GetBytes(Salt);
             var digits = Encoding.ASCII.GetBytes(text);
-            try { Hash = Derive(digits); }
+            try { Hash = Derive(digits); PinLength = digits.Length; }
             finally { Array.Clear(digits, 0, digits.Length); }
         }
 
@@ -103,12 +106,14 @@ namespace DeskPause
         {
             string folder = Path.GetDirectoryName(path);
             Directory.CreateDirectory(folder);
-            var record = new byte[51];
-            record[0] = 1;
+            var record = new byte[53];
+            record[0] = 2;
             record[1] = (byte)Mods;
             record[2] = (byte)Key;
             Buffer.BlockCopy(Salt, 0, record, 3, 16);
             Buffer.BlockCopy(Hash, 0, record, 19, 32);
+            record[51] = checked((byte)PinLength);
+            record[52] = (byte)(FadeIndicator ? 1 : 0);
             var blob = ProtectedData.Protect(record, null, DataProtectionScope.CurrentUser);
             string temp = Path.Combine(folder, Guid.NewGuid().ToString("N") + ".tmp");
             try
@@ -124,9 +129,13 @@ namespace DeskPause
         {
             if (!File.Exists(path)) return null;
             byte[] b = ProtectedData.Unprotect(File.ReadAllBytes(path), null, DataProtectionScope.CurrentUser);
-            if (b.Length != 51 || b[0] != 1 || b[1] == 0 || b[1] > 15 || !ValidKey((Keys)b[2]))
+            bool legacy = b.Length == 51 && b[0] == 1;
+            bool current = b.Length == 53 && b[0] == 2 && b[51] >= MinPinLength && b[51] <= MaxPinLength && b[52] <= 1;
+            if ((!legacy && !current) || b[1] == 0 || b[1] > 15 || !ValidKey((Keys)b[2]))
                 throw new InvalidDataException("The saved settings could not be read.");
             var result = new Preferences { Mods = b[1], Key = (Keys)b[2], Salt = new byte[16], Hash = new byte[32] };
+            result.PinLength = legacy ? 7 : b[51];
+            result.FadeIndicator = current && b[52] == 1;
             Buffer.BlockCopy(b, 3, result.Salt, 0, 16);
             Buffer.BlockCopy(b, 19, result.Hash, 0, 32);
             return result;

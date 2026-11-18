@@ -7,13 +7,14 @@ namespace DeskPause
     internal sealed class SettingsForm : Form
     {
         private readonly CheckBox ctrl, alt, shift, win;
+        private readonly CheckBox fade, startup;
         private readonly ComboBox key = new ComboBox();
         private readonly TextBox pin, confirm;
         private readonly Label status;
         private readonly Preferences prior;
-        private readonly Func<Preferences, string> save;
+        private readonly Func<Preferences, bool?, string> save;
 
-        internal SettingsForm(Preferences current, Func<Preferences, string> save, string notice)
+        internal SettingsForm(Preferences current, bool? startAtSignIn, Func<Preferences, bool?, string> save, string notice)
         {
             prior = current;
             this.save = save;
@@ -21,7 +22,7 @@ namespace DeskPause
             Text = "DeskPause settings";
             Font = new Font("Segoe UI", 10);
             AutoScaleMode = AutoScaleMode.Dpi;
-            ClientSize = new Size(482, 455);
+            ClientSize = new Size(482, 502);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
@@ -44,19 +45,26 @@ namespace DeskPause
             key.FormattingEnabled = true;
             key.SelectedItem = initial.Key;
             Controls.Add(key);
-            AddLabel(current == null ? "Seven-digit PIN" : "New seven-digit PIN", 24, 201, 197, 25);
+            AddLabel(current == null ? "PIN" : "New PIN", 24, 201, 197, 25);
             AddLabel("Confirm PIN", 245, 201, 200, 25);
             pin = AddPin(24);
             confirm = AddPin(245);
-            AddLabel(current == null ? "Choose a PIN just for DeskPause. Leading zeroes are allowed." :
-                "Leave both PIN fields empty to keep your current PIN.", 24, 267, 436, 45);
-            status = AddLabel(notice ?? "", 24, 317, 435, 60);
+            var hint = AddLabel("4–15 digits (0–9). Leading zeroes are allowed.", 24, 263, 435, 24);
+            hint.ForeColor = SystemColors.GrayText;
+            if (current != null) AddLabel("Leave both fields empty to keep your current PIN.", 24, 287, 435, 25);
+            fade = new CheckBox { Text = "Fade the active indicator after 2 seconds", Checked = initial.FadeIndicator, AutoSize = true };
+            fade.Location = new Point(24, 320);
+            startup = new CheckBox { Text = "Start DeskPause when I sign in to Windows", Checked = startAtSignIn == true,
+                Enabled = startAtSignIn.HasValue, AutoSize = true };
+            startup.Location = new Point(24, 351);
+            Controls.AddRange(new Control[] { fade, startup });
+            status = AddLabel(notice ?? "", 24, 387, 435, 48);
             status.AccessibleName = "Settings status";
             status.ForeColor = Color.DarkRed;
             var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel };
-            cancel.SetBounds(240, 392, 93, 37);
+            cancel.SetBounds(240, 444, 93, 37);
             var ok = new Button { Text = "Save", UseVisualStyleBackColor = true };
-            ok.SetBounds(344, 392, 93, 37);
+            ok.SetBounds(344, 444, 93, 37);
             ok.Click += SaveSettings;
             Controls.Add(cancel);
             Controls.Add(ok);
@@ -80,7 +88,8 @@ namespace DeskPause
         }
         private TextBox AddPin(int x)
         {
-            var input = new TextBox { UseSystemPasswordChar = true, AccessibleName = x == 24 ? "Seven-digit PIN" : "Confirm PIN" };
+            var input = new TextBox { UseSystemPasswordChar = true, AccessibleName = x == 24 ? "PIN" : "Confirm PIN",
+                AccessibleDescription = "Enter 4 to 15 digits." };
             input.SetBounds(x, 231, 192, 29);
             Controls.Add(input);
             return input;
@@ -90,21 +99,22 @@ namespace DeskPause
             uint mods = (uint)((ctrl.Checked ? 2 : 0) | (alt.Checked ? 1 : 0) |
                 (shift.Checked ? 4 : 0) | (win.Checked ? 8 : 0));
             if (mods == 0) { status.Text = "Select at least one shortcut modifier."; return; }
-            var next = new Preferences { Mods = mods, Key = (Keys)key.SelectedItem };
+            var next = new Preferences { Mods = mods, Key = (Keys)key.SelectedItem, FadeIndicator = fade.Checked };
             if (prior != null && pin.TextLength == 0 && confirm.TextLength == 0)
             {
                 next.Salt = prior.Salt;
                 next.Hash = prior.Hash;
+                next.PinLength = prior.PinLength;
             }
             else
             {
-                if (!Preferences.SevenDigits(pin.Text)) { status.Text = "Enter exactly seven digits from 0 to 9."; pin.Focus(); return; }
-                if (pin.Text != confirm.Text) { status.Text = "The PINs differ. Enter the same seven digits in both fields."; confirm.Focus(); return; }
+                if (!Preferences.ValidPin(pin.Text)) { status.Text = "Invalid PIN. Enter 4–15 digits (0–9)."; pin.Focus(); return; }
+                if (pin.Text != confirm.Text) { status.Text = "The PINs differ. Enter the same PIN in both fields."; confirm.Focus(); return; }
             }
             try
             {
                 if (next.Hash == null) next.SetPin(pin.Text);
-                string error = save(next);
+                string error = save(next, startup.Enabled ? (bool?)startup.Checked : null);
                 if (error != null) { status.Text = error; return; }
                 pin.Clear();
                 confirm.Clear();

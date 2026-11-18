@@ -1,17 +1,23 @@
 # DeskPause
 
-DeskPause is a small Windows tray app for stepping away while Codex Computer Use keeps working on your visible desktop. Press a shortcut to block ordinary physical mouse and keyboard input. Type your seven-digit PIN to take control again.
+DeskPause is a small Windows tray app for stepping away while Codex Computer Use keeps working on your visible desktop. Press a shortcut to block ordinary physical mouse and keyboard input. Type your PIN to take control again.
 
-**[Download DeskPause 1.1.0 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPause/raw/refs/heads/main/downloads/DeskPause-1.1.0-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPause/blob/main/downloads/DeskPause-1.1.0-win-x64.zip.sha256)
+**[Download DeskPause 1.2.0 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPause/raw/refs/heads/main/downloads/DeskPause-1.2.0-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPause/blob/main/downloads/DeskPause-1.2.0-win-x64.zip.sha256)
 
 ## Get started
 
 1. Extract the ZIP into a folder of your choice and open **DeskPause.exe**. It runs as a standard user on **x64 Windows with .NET Framework 4.8 or later**. The portable executable is unsigned.
-2. Choose a shortcut and enter the same seven-digit PIN in both fields. The suggested shortcut is **Ctrl+Alt+F9**. Leading zeroes work. Choose a PIN specifically for DeskPause.
-3. Select **Save**, then press and release your shortcut. When the teal tray icon turns into an amber padlock, DeskPause is armed. If the icon is hidden, open the taskbar’s tray overflow.
+2. Choose a shortcut and enter the same **4–15 digit PIN** in both fields. The suggested shortcut is **Ctrl+Alt+F9**. Leading zeroes work. Choose a PIN specifically for DeskPause. Existing seven-digit PINs carry over from 1.1.
+3. Select **Save**, then press and release your shortcut. **DeskPause Active** appears in the center of each active monitor. The teal tray icon turns into an amber padlock. If the icon is hidden, open the taskbar’s tray overflow.
 4. To resume, type the PIN on the physical keyboard and release the keys. Use the number row or the numpad with **Num Lock** on. The digits stay out of the focused app. You can leave the mouse pointer wherever it is.
 
 The shortcut picker includes punctuation and separate numpad keys. For **Ctrl+/** on a US keyboard, select **Ctrl** and **/**. For **Ctrl+Shift+/**, also select **Shift**. If Windows has already assigned your combination, the settings window lets you choose another.
+
+## Indicator and startup
+
+By default the centered indicator stays visible until you disarm. It lets clicks pass through and keeps keyboard focus on your current app. To clear the center while you work, select **Fade the active indicator after 2 seconds** in tray **Settings**. The amber tray icon stays visible while the guard is armed.
+
+Select **Start DeskPause when I sign in to Windows** to launch it disarmed in your tray at future sign-ins. This is off by default and applies only to your Windows account. Use **Save** to apply either option. If you move the EXE while startup is enabled, open the new copy and save Settings again to update the launch path.
 
 ## Try it before stepping away
 
@@ -29,7 +35,7 @@ For a desktop-wide check, open a blank text editor, arm DeskPause, and try a phy
 
 The executable is portable and has no companion runtime files. Your shortcut and salted PIN verifier live in `%LOCALAPPDATA%\DeskPause\settings.dat`, protected by Windows for your user account. The app records no keystroke log. Moving the EXE to another folder on the same PC preserves your settings. On another PC or Windows account, choose your shortcut and PIN again.
 
-To update, disarm DeskPause, choose **Exit** from its tray menu, replace the EXE, and launch it. To remove it, exit and delete the EXE. To remove your saved configuration as well, delete the DeskPause folder under `%LOCALAPPDATA%`. DeskPause installs no service, driver, or startup task.
+To update, disarm DeskPause, choose **Exit** from its tray menu, replace the EXE, and launch it. To remove it, turn off the sign-in option and save, then exit and delete the EXE. To remove your saved configuration as well, delete the DeskPause folder under `%LOCALAPPDATA%`. The optional startup entry is named **DeskPause** in the current user's Windows Run registry key.
 
 ## What the guard covers
 

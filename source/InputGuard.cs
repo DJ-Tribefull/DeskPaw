@@ -32,14 +32,20 @@ namespace DeskPause
     internal sealed class PinEntry
     {
         private readonly Action<byte[]> submit;
-        private readonly byte[] digits = new byte[7];
+        private readonly byte[] digits;
         private readonly bool[] held = new bool[256];
         private int length, heldCount, lastDigit;
         internal bool Verifying { get; set; }
         internal bool Confirmed { get; set; }
         internal bool CanRelease { get { return Confirmed && heldCount == 0; } }
 
-        internal PinEntry(Action<byte[]> submit) { this.submit = submit; }
+        internal PinEntry(int pinLength, Action<byte[]> submit)
+        {
+            if (pinLength < Preferences.MinPinLength || pinLength > Preferences.MaxPinLength)
+                throw new ArgumentOutOfRangeException("pinLength");
+            digits = new byte[pinLength];
+            this.submit = submit;
+        }
 
         internal static bool IsInjectedKey(int flags) { return (flags & 0x10) != 0; }
         internal static bool IsInjectedMouse(int flags) { return (flags & 1) != 0; }
