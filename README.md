@@ -2,9 +2,9 @@
 
 DeskPaw is a small Windows tray app for stepping away while Codex Computer Use keeps working on your visible desktop. Press a shortcut to block ordinary physical mouse and keyboard input. Type your PIN to take control again.
 
-**[Download DeskPaw 1.4.0 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPause/raw/refs/heads/main/downloads/DeskPaw-1.4.0-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPause/blob/main/downloads/DeskPaw-1.4.0-win-x64.zip.sha256)
+**[Download DeskPaw 1.4.0 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPaw/raw/refs/heads/main/downloads/DeskPaw-1.4.0-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPaw/blob/main/downloads/DeskPaw-1.4.0-win-x64.zip.sha256)
 
-![DeskPaw settings with an arming shortcut and optional PIN change](https://raw.githubusercontent.com/DJ-Tribefull/DeskPause/v1.4.0/docs/settings.png)
+![DeskPaw settings with an arming shortcut and optional PIN change](https://raw.githubusercontent.com/DJ-Tribefull/DeskPaw/v1.4.0/docs/settings.png)
 
 ## Get started
 
