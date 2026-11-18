@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DeskPause settings</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<body>
+<div id="panel" aria-busy="true">
+  <aside>
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i></span><b>DeskPause</b></div>
+    <nav aria-label="Settings sections">
+      <button type="button" data-page="controls" aria-current="page"><span class="icon" aria-hidden="true">&#xe765;</span>Guard controls</button>
+      <button type="button" data-page="behavior"><span class="icon" aria-hidden="true">&#xe713;</span>Behavior</button>
+      <button type="button" data-page="recovery"><span class="icon" aria-hidden="true">&#xe72e;</span>Recovery</button>
+    </nav>
+    <div class="rail-bottom"><span class="status-dot"></span>Disarmed<span id="version"></span></div>
+  </aside>
+  <main>
+    <div class="content">
+      <header><h1 id="heading">Guard controls</h1></header>
+      <p id="notice" role="status" hidden></p>
+      <section id="controls" aria-labelledby="heading">
+        <div class="shortcut-card">
+          <div class="card-caption"><span class="icon" aria-hidden="true">&#xe765;</span>Arming shortcut</div>
+          <div id="keycaps" aria-live="polite"></div>
+        </div>
+        <div class="shortcut-edit">
+          <fieldset><legend>Modifiers</legend><div class="modifiers">
+            <button type="button" data-mod="2" aria-pressed="false">Ctrl</button>
+            <button type="button" data-mod="1" aria-pressed="false">Alt</button>
+            <button type="button" data-mod="4" aria-pressed="false">Shift</button>
+            <button type="button" data-mod="8" aria-pressed="false">Win</button>
+          </div></fieldset>
+          <label class="key-select">Key<select id="key"></select></label>
+        </div>
+        <div class="pin-section">
+          <h2>Unlock PIN</h2>
+          <div class="pin-fields">
+            <label><span id="pin-label">PIN</span><input id="pin" type="password" inputmode="numeric" autocomplete="new-password" spellcheck="false" aria-describedby="pin-hint"></label>
+            <label>Confirm PIN<input id="confirm" type="password" inputmode="numeric" autocomplete="new-password" spellcheck="false" aria-describedby="pin-hint"></label>
+          </div>
+          <p class="hint" id="pin-hint">Use 4–15 digits. Leading zeroes are allowed.</p>
+        </div>
+      </section>
+      <section id="behavior" aria-labelledby="heading" hidden>
+        <div class="setting-row"><label for="fade"><strong>Fade the active indicator</strong><small>Hide the centered overlay after two seconds. The tray icon stays amber while armed.</small></label><input class="switch" id="fade" type="checkbox" role="switch"></div>
+        <div class="setting-row"><label for="startup"><strong>Start at Windows sign-in</strong><small>Open DeskPause disarmed in your tray when you sign in.</small></label><input class="switch" id="startup" type="checkbox" role="switch"></div>
+      </section>
+      <section id="recovery" aria-labelledby="heading" hidden>
+        <h2>Forgot your PIN?</h2><p class="body-copy">Press <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Delete</kbd>, choose <b>Lock</b>, and sign back in to Windows. DeskPause disarms when your session unlocks.</p>
+        <p class="body-copy">Open Guard controls and save a new PIN.</p>
+        <h2 class="subhead">While typing your PIN</h2><dl><dt>Backspace</dt><dd>Remove the last digit.</dd><dt>Escape</dt><dd>Clear the current entry.</dd></dl>
+      </section>
+      <p id="error" role="alert" hidden></p>
+    </div>
+    <footer><span id="dirty" role="status"></span><button class="secondary" id="cancel" type="button">Cancel</button><button class="primary" id="save" type="button" disabled>Save settings</button></footer>
+  </main>
+</div>
+</body></html>

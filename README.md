@@ -2,22 +2,24 @@
 
 DeskPause is a small Windows tray app for stepping away while Codex Computer Use keeps working on your visible desktop. Press a shortcut to block ordinary physical mouse and keyboard input. Type your PIN to take control again.
 
-**[Download DeskPause 1.2.0 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPause/raw/refs/heads/main/downloads/DeskPause-1.2.0-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPause/blob/main/downloads/DeskPause-1.2.0-win-x64.zip.sha256)
+**[Download DeskPause 1.3.0 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPause/raw/refs/heads/main/downloads/DeskPause-1.3.0-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPause/blob/main/downloads/DeskPause-1.3.0-win-x64.zip.sha256)
+
+![DeskPause settings with an arming shortcut and optional PIN change](https://raw.githubusercontent.com/DJ-Tribefull/DeskPause/v1.3.0/docs/settings.png)
 
 ## Get started
 
-1. Extract the ZIP into a folder of your choice and open **DeskPause.exe**. It runs as a standard user on **x64 Windows with .NET Framework 4.8 or later**. The portable executable is unsigned.
+1. Extract the ZIP into a folder of your choice, keep the two executables together, and open **DeskPause.exe**. The tray app runs as a standard user on **x64 Windows with .NET Framework 4.8 or later**. The Tauri settings panel uses the system Microsoft Edge WebView2 Runtime. The executables are unsigned.
 2. Choose a shortcut and enter the same **4–15 digit PIN** in both fields. The suggested shortcut is **Ctrl+Alt+F9**. Leading zeroes work. Choose a PIN specifically for DeskPause. Existing seven-digit PINs carry over from 1.1.
-3. Select **Save**, then press and release your shortcut. **DeskPause Active** appears in the center of each active monitor. The teal tray icon turns into an amber padlock. If the icon is hidden, open the taskbar’s tray overflow.
+3. Select **Save settings**, then press and release your shortcut. **DeskPause Active** appears in the center of each active monitor. The teal tray icon turns into an amber padlock. If the icon is hidden, open the taskbar’s tray overflow.
 4. To resume, type the PIN on the physical keyboard and release the keys. Use the number row or the numpad with **Num Lock** on. The digits stay out of the focused app. You can leave the mouse pointer wherever it is.
 
 The shortcut picker includes punctuation and separate numpad keys. For **Ctrl+/** on a US keyboard, select **Ctrl** and **/**. For **Ctrl+Shift+/**, also select **Shift**. If Windows has already assigned your combination, the settings window lets you choose another.
 
 ## Indicator and startup
 
-By default the centered indicator stays visible until you disarm. It lets clicks pass through and keeps keyboard focus on your current app. To clear the center while you work, select **Fade the active indicator after 2 seconds** in tray **Settings**. The amber tray icon stays visible while the guard is armed.
+By default the centered indicator stays visible until you disarm. It lets clicks pass through and keeps keyboard focus on your current app. To fade the overlay after two seconds, select **Fade the active indicator** under **Settings → Behavior**. The amber tray icon stays visible while the guard is armed.
 
-Select **Start DeskPause when I sign in to Windows** to launch it disarmed in your tray at future sign-ins. This is off by default and applies only to your Windows account. Use **Save** to apply either option. If you move the EXE while startup is enabled, open the new copy and save Settings again to update the launch path.
+Open **Settings → Behavior** and select **Start at Windows sign-in** to launch DeskPause disarmed in your tray at future sign-ins. This is off by default and applies only to your Windows account. Select **Save settings** to apply changes across sections. If you move the app while startup is enabled, open the new copy and save Settings again to update the launch path.
 
 ## Try it before stepping away
 
@@ -33,9 +35,11 @@ For a desktop-wide check, open a blank text editor, arm DeskPause, and try a phy
 
 ## Moving, updating, or removing DeskPause
 
-The executable is portable and has no companion runtime files. Your shortcut and salted PIN verifier live in `%LOCALAPPDATA%\DeskPause\settings.dat`, protected by Windows for your user account. The app records no keystroke log. Moving the EXE to another folder on the same PC preserves your settings. On another PC or Windows account, choose your shortcut and PIN again.
+**DeskPause.exe** runs the tray and input guard. It launches **DeskPause.Settings.exe** when you open Settings and the helper exits when you close the panel. The helper embeds its HTML, CSS, and JavaScript. No installer, local web server, Node.js installation, or bundled browser is needed. You can carry just the tray EXE if you prefer the classic settings dialog.
 
-To update, disarm DeskPause, choose **Exit** from its tray menu, replace the EXE, and launch it. To remove it, turn off the sign-in option and save, then exit and delete the EXE. To remove your saved configuration as well, delete the DeskPause folder under `%LOCALAPPDATA%`. The optional startup entry is named **DeskPause** in the current user's Windows Run registry key.
+Your shortcut and salted PIN verifier live in `%LOCALAPPDATA%\DeskPause\settings.dat`, protected by Windows for your user account. The app records no keystroke log. The Tauri helper uses a separate WebView2 profile under `%LOCALAPPDATA%\app.deskpause.settings`. Moving the executables to another folder on the same PC preserves your settings. On another PC or Windows account, choose your shortcut and PIN again.
+
+To update, disarm DeskPause, choose **Exit** from its tray menu, replace both executables, and launch **DeskPause.exe**. To remove it, turn off the sign-in option and save, then exit and delete the executables. To remove your saved configuration and WebView2 profile as well, delete the two app folders above. The optional startup entry is named **DeskPause** in the current user's Windows Run registry key.
 
 ## What the guard covers
 
@@ -45,13 +49,14 @@ DeskPause leaves Windows lock and sleep policies in effect. If Windows locks or 
 
 ## Build and test
 
-From PowerShell in the repository root, run the following on x64 Windows with .NET Framework 4.8 or later. The scripts use the Windows .NET Framework C# compiler and have no NuGet dependencies.
+From PowerShell in the repository root, run the following on x64 Windows with .NET Framework 4.8 or later. The tray build uses the Windows .NET Framework C# compiler. The settings helper requires stable Rust for the MSVC target, the Visual Studio C++ build tools, and the Windows SDK. [Tauri Windows prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ```powershell
 .\source\build.ps1
+.\settings\build.ps1
 .\tests\test.ps1
 ```
 
-The build writes **DeskPause.exe** to the repository root. Exit that copy before rebuilding it. The automated checks exercise PIN validation and editing, protected settings, and how the input filter handles physical and injected events. They use synthetic input and temporary test settings. To exercise Codex with the actual Windows hooks, use **Test in a window**.
+The scripts write both executables to the repository root. Exit that copy before rebuilding it. The automated checks exercise PIN validation and editing, protected settings, the panel’s save requests, and how the input filter handles physical and injected events. They use synthetic input and temporary test settings. To exercise Codex with the actual Windows hooks, use **Test in a window**.
 
 DeskPause is released under the [MIT License](LICENSE).

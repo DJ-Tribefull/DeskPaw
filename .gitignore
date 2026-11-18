@@ -1,4 +1,7 @@
 /DeskPause.exe
+/DeskPause.Settings.exe
+/settings/target/
+/settings/gen/
 /artifacts/
 .vs/
 *.pdb

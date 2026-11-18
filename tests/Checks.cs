@@ -46,6 +46,23 @@ internal static class Checks
             Assert(Encoding.ASCII.GetString(received) == sample, "full PIN delivered at length " + length);
         }
         prefs.SetPin("0022446");
+        var edit = new SettingsPanel.Changes { mods = 3, key = (int)Keys.Oem2, fade = true, startup = true, pin = "", confirm = "" };
+        Preferences proposed = null;
+        bool? runAtLogin = null;
+        Func<Preferences, bool?, string> capture = delegate(Preferences next, bool? startup)
+        { proposed = next; runAtLogin = startup; return null; };
+        Assert(SettingsPanel.Apply(edit, prefs, false, capture) == null && proposed.Hash == prefs.Hash &&
+            proposed.PinLength == 7 && proposed.FadeIndicator && runAtLogin == true, "Tauri settings preserve the PIN and apply options");
+        Assert(SettingsPanel.Apply(edit, null, false, capture) != null, "Tauri first-use requires a PIN");
+        edit.pin = "0015"; edit.confirm = "0025";
+        Assert(SettingsPanel.Apply(edit, prefs, false, capture) != null, "Tauri rejects mismatched digits");
+        edit.confirm = edit.pin;
+        Assert(SettingsPanel.Apply(edit, null, null, capture) == null && proposed.PinLength == 4 &&
+            proposed.Matches(Encoding.ASCII.GetBytes("0015")) && runAtLogin == null, "Tauri new PIN and unavailable startup");
+        edit.key = (int)Keys.Escape;
+        Assert(SettingsPanel.Apply(edit, prefs, false, capture) != null, "Tauri rejects unsupported keys");
+        edit.key = (int)Keys.F9; edit.mods = 0;
+        Assert(SettingsPanel.Apply(edit, prefs, false, capture) != null, "Tauri requires a modifier");
         Assert(prefs.Matches(Encoding.ASCII.GetBytes("0022446")), "PIN match");
         Assert(!prefs.Matches(Encoding.ASCII.GetBytes("0022447")), "incorrect PIN rejected");
         var other = new Preferences();

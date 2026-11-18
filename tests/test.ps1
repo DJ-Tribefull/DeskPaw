@@ -8,8 +8,9 @@ $sources = @(
     (Join-Path $PSScriptRoot 'Checks.cs')
     (Join-Path $root 'source\InputGuard.cs')
     (Join-Path $root 'source\Preferences.cs')
+    (Join-Path $root 'source\SettingsPanel.cs')
 )
-& $compiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Security.dll "/out:$target" $sources
+& $compiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Security.dll /reference:System.Web.Extensions.dll "/out:$target" $sources
 if ($LASTEXITCODE -ne 0) { throw "Test compilation failed ($LASTEXITCODE)." }
 & $target $testDir
 if ($LASTEXITCODE -ne 0) { throw "DeskPause checks failed ($LASTEXITCODE)." }

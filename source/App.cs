@@ -10,7 +10,7 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("DeskPause")]
 [assembly: AssemblyDescription("Desktop input guard for unattended work")]
 [assembly: AssemblyProduct("DeskPause")]
-[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
 
 namespace DeskPause
 {
@@ -46,6 +46,7 @@ namespace DeskPause
         private readonly System.Windows.Forms.Timer tick = new System.Windows.Forms.Timer { Interval = 35 };
         private Preferences prefs;
         private SettingsForm dialog;
+        private SettingsPanel panel;
         private InputCheck checkWindow;
         private InputGuard guard;
         private PinEntry entry;
@@ -53,7 +54,7 @@ namespace DeskPause
         private int hotKeyId, pendingSince, wrong;
         private bool waiting, disposed;
 
-        internal TrayApp()
+        internal TrayApp(bool openSettings = false)
         {
             if (!Native.WTSRegisterSessionNotification(window.Handle, 0))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows session recovery could not be initialized. Reopen DeskPause.");
@@ -84,7 +85,7 @@ namespace DeskPause
             else if (prefs != null) notice = "Your saved shortcut is in use. Choose another combination.";
             RefreshTray();
             tray.Visible = true;
-            if (prefs == null || hotKeyId == 0)
+            if (openSettings || prefs == null || hotKeyId == 0)
                 window.BeginInvoke((Action)delegate { ShowSettings(notice); });
             else Notify("Ready. Arm with " + prefs.Shortcut + ".");
         }
@@ -133,14 +134,28 @@ namespace DeskPause
             return null;
         }
 
-        private void ShowSettings(string notice)
+        private async void ShowSettings(string notice)
         {
             if (guard != null || waiting) return;
             if (checkWindow != null) { checkWindow.Activate(); return; }
             if (dialog != null) { dialog.Activate(); return; }
+            if (panel != null) { panel.Activate(); return; }
             bool? startAtSignIn = null;
             try { startAtSignIn = startup.Enabled; }
             catch (Exception) { notice = ((notice ?? "") + " Windows startup settings are unavailable.").Trim(); }
+            if (System.IO.File.Exists(SettingsPanel.Executable))
+            {
+                panel = new SettingsPanel();
+                try
+                {
+                    bool saved = await panel.Run(prefs, startAtSignIn, notice, Commit);
+                    if (saved && !disposed) Notify("Ready. Arm with " + prefs.Shortcut + ".");
+                    return;
+                }
+                catch (Exception) { notice = "The modern panel was unavailable. You can edit your settings here."; }
+                finally { panel = null; }
+            }
+            if (disposed) return;
             using (dialog = new SettingsForm(prefs, startAtSignIn, Commit, notice))
             {
                 dialog.Icon = idleIcon;
@@ -151,7 +166,7 @@ namespace DeskPause
 
         private void ShowInputCheck()
         {
-            if (guard != null || waiting || dialog != null) return;
+            if (guard != null || waiting || dialog != null || panel != null) return;
             if (checkWindow != null) { checkWindow.Activate(); return; }
             using (checkWindow = new InputCheck()) checkWindow.ShowDialog();
             checkWindow = null;
@@ -175,7 +190,7 @@ namespace DeskPause
 
         private void Arm()
         {
-            if (guard != null || waiting || prefs == null || dialog != null || checkWindow != null) return;
+            if (guard != null || waiting || prefs == null || dialog != null || panel != null || checkWindow != null) return;
             waiting = true;
             pendingSince = Environment.TickCount;
             RefreshTray();
@@ -274,6 +289,7 @@ namespace DeskPause
             if (disposing && !disposed)
             {
                 disposed = true;
+                if (panel != null) panel.Close();
                 Release();
                 if (hotKeyId != 0) Native.UnregisterHotKey(window.Handle, hotKeyId);
                 Native.WTSUnRegisterSessionNotification(window.Handle);
@@ -301,7 +317,7 @@ namespace DeskPause
             using (var single = new Mutex(true, @"Local\DeskPause.Tray.1", out first))
             {
                 if (!first) { MessageBox.Show("DeskPause is already running. Open Settings from its tray icon.", "DeskPause"); return; }
-                try { using (var app = new TrayApp()) Application.Run(app); }
+                try { using (var app = new TrayApp(Array.IndexOf(args, "--settings") >= 0)) Application.Run(app); }
                 catch (Exception ex) { MessageBox.Show(ex.Message, "DeskPause could not start", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }
