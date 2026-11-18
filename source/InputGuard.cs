@@ -36,6 +36,7 @@ namespace DeskPause
         private readonly bool[] held = new bool[256];
         private int length, lastDigit;
         private int submitOnRelease = -1;
+        private int incorrectAttempts;
         internal bool Verifying { get; set; }
         internal bool Confirmed { get; set; }
 
@@ -93,6 +94,14 @@ namespace DeskPause
         }
 
         private void ClearDigits() { Array.Clear(digits, 0, digits.Length); length = 0; submitOnRelease = -1; }
+        // One PinEntry lives for one arming. Clearing partial digits leaves completed attempts counted.
+        internal bool RecordIncorrectPin(bool lockAfterWrongPins)
+        {
+            if (!lockAfterWrongPins || ++incorrectAttempts < 5) return false;
+            incorrectAttempts = 0;
+            return true;
+        }
+
         internal void Reset()
         {
             ClearDigits();

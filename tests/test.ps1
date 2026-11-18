@@ -13,4 +13,4 @@ $sources = @(
 & $compiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Security.dll /reference:System.Web.Extensions.dll "/out:$target" $sources
 if ($LASTEXITCODE -ne 0) { throw "Test compilation failed ($LASTEXITCODE)." }
 & $target $testDir
-if ($LASTEXITCODE -ne 0) { throw "DeskPause checks failed ($LASTEXITCODE)." }
+if ($LASTEXITCODE -ne 0) { throw "DeskPaw checks failed ($LASTEXITCODE)." }

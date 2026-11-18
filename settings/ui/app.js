@@ -42,7 +42,8 @@ function message(text, field) {
 }
 function changes() {
   return { mods, key:Number($("key").value), pin:$("pin").value, confirm:$("confirm").value,
-    fade:$("fade").checked, startup:model.startup === null ? null : $("startup").checked };
+    fade:$("fade").checked, lockAfterWrongPins:$("lockAfterWrongPins").checked,
+    startup:model.startup === null ? null : $("startup").checked };
 }
 function update() {
   const edit = changes();
@@ -64,7 +65,7 @@ function update() {
     key.textContent = label; caps.append(key);
   });
   const dirty = edit.mods !== model.mods || edit.key !== model.key || edit.fade !== model.fade ||
-    edit.startup !== model.startup || edit.pin !== "" || edit.confirm !== "";
+    edit.lockAfterWrongPins !== (model.lockAfterWrongPins === true) || edit.startup !== model.startup || edit.pin !== "" || edit.confirm !== "";
   $("dirty").textContent = dirty ? "Unsaved changes" : "";
 }
 const invoke = (command, args) => window.__TAURI__.core.invoke(command, args);
@@ -95,7 +96,7 @@ for (const button of document.querySelectorAll("[data-page]"))
   button.addEventListener("click", () => showPage(button.dataset.page));
 for (const button of modButtons)
   button.addEventListener("click", () => { if (model) { mods ^= Number(button.dataset.mod); message(""); update(); } });
-for (const id of ["key", "pin", "confirm", "fade", "startup"])
+for (const id of ["key", "pin", "confirm", "fade", "startup", "lockAfterWrongPins"])
   $(id).addEventListener("input", () => { if (model) { message(""); update(); } });
 $("save").addEventListener("click", save);
 $("cancel").addEventListener("click", () => { if (!saving) closePanel(); });
@@ -112,6 +113,7 @@ document.addEventListener("keydown", ev => {
     for (const item of model.keys) $("key").add(new Option(item.label, item.value));
     $("key").value = model.key;
     $("fade").checked = model.fade;
+    $("lockAfterWrongPins").checked = model.lockAfterWrongPins === true;
     $("startup").checked = model.startup === true;
     $("startup").disabled = model.startup === null;
     $("version").textContent = "v" + model.version.split(".").slice(0,3).join(".");

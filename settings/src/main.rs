@@ -19,6 +19,7 @@ struct Changes {
     pin: String,
     confirm: String,
     fade: bool,
+    lock_after_wrong_pins: bool,
     startup: Option<bool>,
 }
 
@@ -71,5 +72,5 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![get_settings, save_settings, close_panel])
         .run(tauri::generate_context!())
-        .expect("DeskPause settings could not open");
+        .expect("DeskPaw settings could not open");
 }

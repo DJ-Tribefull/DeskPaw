@@ -7,10 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-[assembly: AssemblyTitle("DeskPause")]
+[assembly: AssemblyTitle("DeskPaw")]
 [assembly: AssemblyDescription("Desktop input guard for unattended work")]
-[assembly: AssemblyProduct("DeskPause")]
-[assembly: AssemblyVersion("1.3.1.0")]
+[assembly: AssemblyProduct("DeskPaw")]
+[assembly: AssemblyVersion("1.4.0.0")]
 
 namespace DeskPause
 {
@@ -51,13 +51,13 @@ namespace DeskPause
         private InputGuard guard;
         private PinEntry entry;
         private byte[] pendingDigits;
-        private int hotKeyId, pendingSince, wrong;
+        private int hotKeyId, pendingSince;
         private bool waiting, disposed;
 
         internal TrayApp(bool openSettings = false)
         {
             if (!Native.WTSRegisterSessionNotification(window.Handle, 0))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows session recovery could not be initialized. Reopen DeskPause.");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows session recovery could not be initialized. Reopen DeskPaw.");
             window.HotKey += delegate(int id) { if (id == hotKeyId) Arm(); };
             window.AuthenticatedUnlock += Release;
             window.DisplaysChanged += indicator.RefreshDisplays;
@@ -70,7 +70,7 @@ namespace DeskPause
                     if (entry != null) { entry.Reset(); CancelCandidate(); epoch++; }
                 }
             };
-            arm = new ToolStripMenuItem("Arm DeskPause", null, delegate { Arm(); });
+            arm = new ToolStripMenuItem("Arm DeskPaw", null, delegate { Arm(); });
             settings = new ToolStripMenuItem("Settings…", null, delegate { ShowSettings(null); });
             check = new ToolStripMenuItem("Test in a window…", null, delegate { ShowInputCheck(); });
             exit = new ToolStripMenuItem("Exit", null, delegate { if (guard == null && !waiting) ExitThread(); });
@@ -176,16 +176,16 @@ namespace DeskPause
         {
             bool busy = guard != null || waiting;
             tray.Icon = guard != null ? armedIcon : idleIcon;
-            tray.Text = guard != null ? "DeskPause • armed" : waiting ? "DeskPause • release keys to arm" :
-                prefs != null ? "DeskPause • ready" : "DeskPause • setup needed";
-            arm.Text = guard != null ? "Armed" : waiting ? "Release keys to arm" : "Arm DeskPause";
+            tray.Text = guard != null ? "DeskPaw • armed" : waiting ? "DeskPaw • release keys to arm" :
+                prefs != null ? "DeskPaw • ready" : "DeskPaw • setup needed";
+            arm.Text = guard != null ? "Armed" : waiting ? "Release keys to arm" : "Arm DeskPaw";
             arm.Enabled = !busy && prefs != null;
             settings.Enabled = check.Enabled = exit.Enabled = !busy;
         }
 
         private void Notify(string message)
         {
-            tray.ShowBalloonTip(2500, "DeskPause", message, ToolTipIcon.Info);
+            tray.ShowBalloonTip(2500, "DeskPaw", message, ToolTipIcon.Info);
         }
 
         private void Arm()
@@ -255,10 +255,9 @@ namespace DeskPause
             if (disposed || generation != epoch || entry == null) return;
             entry.Verifying = false;
             if (match) { entry.Confirmed = true; return; }
-            if (++wrong >= 5)
+            if (entry.RecordIncorrectPin(config.LockAfterWrongPins))
             {
-                wrong = 0;
-                if (!Native.LockWorkStation()) Notify("Windows lock was unavailable. DeskPause is still armed.");
+                if (!Native.LockWorkStation()) Notify("Windows lock was unavailable. DeskPaw is still armed.");
             }
             else Notify("Incorrect PIN. Try again.");
         }
@@ -280,7 +279,6 @@ namespace DeskPause
             guard = null;
             entry = null;
             waiting = false;
-            wrong = 0;
             RefreshTray();
         }
 
@@ -316,9 +314,9 @@ namespace DeskPause
             bool first;
             using (var single = new Mutex(true, @"Local\DeskPause.Tray.1", out first))
             {
-                if (!first) { MessageBox.Show("DeskPause is already running. Open Settings from its tray icon.", "DeskPause"); return; }
+                if (!first) { MessageBox.Show("DeskPaw is already running. Open Settings from its tray icon.", "DeskPaw"); return; }
                 try { using (var app = new TrayApp(Array.IndexOf(args, "--settings") >= 0)) Application.Run(app); }
-                catch (Exception ex) { MessageBox.Show(ex.Message, "DeskPause could not start", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                catch (Exception ex) { MessageBox.Show(ex.Message, "DeskPaw could not start", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }
     }

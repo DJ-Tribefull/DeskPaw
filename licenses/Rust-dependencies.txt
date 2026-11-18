@@ -1,4 +1,4 @@
-Rust dependencies for the DeskPause settings build
+Rust dependencies for the DeskPaw settings build
 
 adler2 2.0.1 | 0BSD OR MIT OR Apache-2.0 | text 1, 2, 3 | https://crates.io/crates/adler2/2.0.1
 aho-corasick 1.1.5 | Unlicense OR MIT | text 4, 5, 6 | https://crates.io/crates/aho-corasick/1.1.5

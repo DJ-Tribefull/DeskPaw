@@ -41,7 +41,7 @@ namespace DeskPause
             string desired = enabled ? command : null;
             if (old == desired) { savePreferences(); return; }
             if (enabled && command.Length > 260)
-                throw new InvalidOperationException("Move DeskPause to a shorter path to start it at sign-in.");
+                throw new InvalidOperationException("Move DeskPaw to a shorter path to start it at sign-in.");
             Write(desired);
             try { savePreferences(); }
             catch

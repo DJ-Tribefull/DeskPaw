@@ -15,6 +15,7 @@ namespace DeskPause
         internal const int MinPinLength = 4, MaxPinLength = 15;
         internal int PinLength;
         internal bool FadeIndicator;
+        internal bool LockAfterWrongPins;
         private const int Rounds = 200000;
         internal static string Folder
         {
@@ -106,14 +107,15 @@ namespace DeskPause
         {
             string folder = Path.GetDirectoryName(path);
             Directory.CreateDirectory(folder);
-            var record = new byte[53];
-            record[0] = 2;
+            var record = new byte[54];
+            record[0] = 3;
             record[1] = (byte)Mods;
             record[2] = (byte)Key;
             Buffer.BlockCopy(Salt, 0, record, 3, 16);
             Buffer.BlockCopy(Hash, 0, record, 19, 32);
             record[51] = checked((byte)PinLength);
             record[52] = (byte)(FadeIndicator ? 1 : 0);
+            record[53] = (byte)(LockAfterWrongPins ? 1 : 0);
             var blob = ProtectedData.Protect(record, null, DataProtectionScope.CurrentUser);
             string temp = Path.Combine(folder, Guid.NewGuid().ToString("N") + ".tmp");
             try
@@ -130,12 +132,15 @@ namespace DeskPause
             if (!File.Exists(path)) return null;
             byte[] b = ProtectedData.Unprotect(File.ReadAllBytes(path), null, DataProtectionScope.CurrentUser);
             bool legacy = b.Length == 51 && b[0] == 1;
-            bool current = b.Length == 53 && b[0] == 2 && b[51] >= MinPinLength && b[51] <= MaxPinLength && b[52] <= 1;
-            if ((!legacy && !current) || b[1] == 0 || b[1] > 15 || !ValidKey((Keys)b[2]))
+            bool v2 = b.Length == 53 && b[0] == 2;
+            bool v3 = b.Length == 54 && b[0] == 3 && b[53] <= 1;
+            if ((!legacy && !v2 && !v3) || (!legacy && (b[51] < MinPinLength || b[51] > MaxPinLength || b[52] > 1)) ||
+                b[1] == 0 || b[1] > 15 || !ValidKey((Keys)b[2]))
                 throw new InvalidDataException("The saved settings could not be read.");
             var result = new Preferences { Mods = b[1], Key = (Keys)b[2], Salt = new byte[16], Hash = new byte[32] };
             result.PinLength = legacy ? 7 : b[51];
-            result.FadeIndicator = current && b[52] == 1;
+            result.FadeIndicator = !legacy && b[52] == 1;
+            result.LockAfterWrongPins = v3 && b[53] == 1;
             Buffer.BlockCopy(b, 3, result.Salt, 0, 16);
             Buffer.BlockCopy(b, 19, result.Hash, 0, 32);
             return result;

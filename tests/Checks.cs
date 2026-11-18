@@ -28,6 +28,15 @@ internal static class Checks
     static int Main(string[] args)
     {
         var prefs = new Preferences();
+        Assert(!prefs.LockAfterWrongPins, "new profiles keep Windows unlocked on incorrect PINs");
+        var attempts = new PinEntry(4, delegate { });
+        for (int i = 1; i <= 12; i++)
+            Assert(!attempts.RecordIncorrectPin(false), "opt-out suppresses lock request at attempt " + i);
+        for (int i = 1; i <= 10; i++)
+        {
+            Tap(attempts, (int)Keys.Escape, i);
+            Assert(attempts.RecordIncorrectPin(true) == (i % 5 == 0), "opt-in requests lock every fifth incorrect PIN");
+        }
         Assert(!Preferences.ValidPin(null) && !Preferences.ValidPin(""), "empty");
         Assert(!Preferences.ValidPin("123"), "short");
         Assert(!Preferences.ValidPin("0123456789012345"), "long");
@@ -52,7 +61,15 @@ internal static class Checks
         Func<Preferences, bool?, string> capture = delegate(Preferences next, bool? startup)
         { proposed = next; runAtLogin = startup; return null; };
         Assert(SettingsPanel.Apply(edit, prefs, false, capture) == null && proposed.Hash == prefs.Hash &&
-            proposed.PinLength == 7 && proposed.FadeIndicator && runAtLogin == true, "Tauri settings preserve the PIN and apply options");
+            proposed.PinLength == 7 && proposed.FadeIndicator && !proposed.LockAfterWrongPins && runAtLogin == true,
+            "Tauri settings preserve the PIN and apply options");
+        edit.lockAfterWrongPins = true;
+        Assert(SettingsPanel.Apply(edit, prefs, false, capture) == null && proposed.LockAfterWrongPins, "Tauri opts in");
+        var optedIn = proposed;
+        edit.lockAfterWrongPins = null;
+        Assert(SettingsPanel.Apply(edit, optedIn, false, capture) == null && proposed.LockAfterWrongPins, "older helper preserves opt-in");
+        edit.lockAfterWrongPins = false;
+        Assert(SettingsPanel.Apply(edit, optedIn, false, capture) == null && !proposed.LockAfterWrongPins, "Tauri opts out");
         Assert(SettingsPanel.Apply(edit, null, false, capture) != null, "Tauri first-use requires a PIN");
         edit.pin = "0015"; edit.confirm = "0025";
         Assert(SettingsPanel.Apply(edit, prefs, false, capture) != null, "Tauri rejects mismatched digits");
@@ -85,11 +102,24 @@ internal static class Checks
             Buffer.BlockCopy(prefs.Hash, 0, legacy, 19, 32);
             File.WriteAllBytes(path, ProtectedData.Protect(legacy, null, DataProtectionScope.CurrentUser));
             loaded = Preferences.Load(path);
-            Assert(loaded.PinLength == 7 && !loaded.FadeIndicator && loaded.Matches(Encoding.ASCII.GetBytes("0022446")), "1.1 settings load");
-            loaded.FadeIndicator = true;
+            Assert(loaded.PinLength == 7 && !loaded.FadeIndicator && !loaded.LockAfterWrongPins &&
+                loaded.Matches(Encoding.ASCII.GetBytes("0022446")), "1.1 settings upgrade with lock off");
+            byte[] v2 = new byte[53];
+            Array.Copy(legacy, v2, legacy.Length);
+            v2[0] = 2; v2[51] = 7; v2[52] = 1;
+            File.WriteAllBytes(path, ProtectedData.Protect(v2, null, DataProtectionScope.CurrentUser));
+            loaded = Preferences.Load(path);
+            Assert(loaded.PinLength == 7 && loaded.FadeIndicator && !loaded.LockAfterWrongPins &&
+                loaded.Matches(Encoding.ASCII.GetBytes("0022446")), "1.3.1 settings upgrade with lock off and existing PIN intact");
+            loaded.LockAfterWrongPins = true;
             loaded.Save(path);
             loaded = Preferences.Load(path);
-            Assert(loaded.PinLength == 7 && loaded.FadeIndicator && loaded.Matches(Encoding.ASCII.GetBytes("0022446")), "preserve old PIN when saving new option");
+            Assert(loaded.PinLength == 7 && loaded.FadeIndicator && loaded.LockAfterWrongPins &&
+                loaded.Matches(Encoding.ASCII.GetBytes("0022446")), "opt-in survives reload with existing PIN");
+            loaded.LockAfterWrongPins = false;
+            loaded.Save(path);
+            loaded = Preferences.Load(path);
+            Assert(!loaded.LockAfterWrongPins && loaded.FadeIndicator, "opt-out survives reload");
             foreach (string sample in new[] { "0007", "012345678901234" })
             {
                 loaded.SetPin(sample);

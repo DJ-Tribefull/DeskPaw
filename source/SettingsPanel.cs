@@ -13,7 +13,7 @@ namespace DeskPause
     // A fresh helper and a private pair of inherited pipes exist only while Settings is open.
     internal sealed class SettingsPanel
     {
-        internal static string Executable { get { return Path.Combine(Application.StartupPath, "DeskPause.Settings.exe"); } }
+        internal static string Executable { get { return Path.Combine(Application.StartupPath, "DeskPaw.Settings.exe"); } }
         private readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 16384 };
         private Process child;
         private StreamWriter writer;
@@ -28,6 +28,7 @@ namespace DeskPause
             public string pin { get; set; }
             public string confirm { get; set; }
             public bool? fade { get; set; }
+            public bool? lockAfterWrongPins { get; set; }
             public bool? startup { get; set; }
         }
 
@@ -40,6 +41,8 @@ namespace DeskPause
             if (!edit.fade.HasValue || (startupAvailable.HasValue && !edit.startup.HasValue))
                 return "The settings are incomplete. Reopen the panel and try again.";
             var next = new Preferences { Mods = (uint)edit.mods.Value, Key = (Keys)edit.key.Value, FadeIndicator = edit.fade.Value };
+            // Older portable helpers omit this field when saving unrelated settings.
+            next.LockAfterWrongPins = edit.lockAfterWrongPins ?? (prior != null && prior.LockAfterWrongPins);
             if (prior != null && edit.pin == "" && edit.confirm == "")
             {
                 next.PinLength = prior.PinLength;
@@ -62,7 +65,7 @@ namespace DeskPause
             for (int vk = 0; vk < 256; vk++)
                 if (Preferences.ValidKey((Keys)vk)) keys.Add(new { value = vk, label = Preferences.KeyLabel((Keys)vk) });
             var initial = new { mods = value.Mods, key = (int)value.Key, fade = value.FadeIndicator, startup,
-                hasPin = prior != null, notice, keys, version = Application.ProductVersion };
+                lockAfterWrongPins = value.LockAfterWrongPins, hasPin = prior != null, notice, keys, version = Application.ProductVersion };
             var start = new ProcessStartInfo(Executable) {
                 UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true,
                 StandardOutputEncoding = new UTF8Encoding(false), CreateNoWindow = true

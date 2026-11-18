@@ -16,7 +16,7 @@ namespace DeskPause
         private readonly Font captionFont;
         internal IndicatorWindow(Rectangle monitor)
         {
-            Text = "DeskPause Active";
+            Text = "DeskPaw Active";
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.Manual;
             ShowInTaskbar = false;

@@ -7,7 +7,7 @@ namespace DeskPause
     internal sealed class SettingsForm : Form
     {
         private readonly CheckBox ctrl, alt, shift, win;
-        private readonly CheckBox fade, startup;
+        private readonly CheckBox fade, startup, lockAfterWrongPins;
         private readonly ComboBox key = new ComboBox();
         private readonly TextBox pin, confirm;
         private readonly Label status;
@@ -19,14 +19,14 @@ namespace DeskPause
             prior = current;
             this.save = save;
             Preferences initial = current ?? new Preferences();
-            Text = "DeskPause settings";
+            Text = "DeskPaw settings";
             Font = new Font("Segoe UI", 10);
             AutoScaleMode = AutoScaleMode.Dpi;
-            ClientSize = new Size(482, 502);
+            ClientSize = new Size(482, 533);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            var title = AddLabel("Set up DeskPause", 22, 18, 442, 37);
+            var title = AddLabel("Set up DeskPaw", 22, 18, 442, 37);
             title.Font = new Font(Font.FontFamily, 17, FontStyle.Bold);
             AddLabel("Arm with a shortcut. Type your PIN anywhere to resume.", 24, 63, 435, 28);
             var hot = AddLabel("Arming shortcut", 24, 108, 250, 24);
@@ -54,17 +54,19 @@ namespace DeskPause
             if (current != null) AddLabel("Leave both fields empty to keep your current PIN.", 24, 287, 435, 25);
             fade = new CheckBox { Text = "Fade the active indicator after 2 seconds", Checked = initial.FadeIndicator, AutoSize = true };
             fade.Location = new Point(24, 320);
-            startup = new CheckBox { Text = "Start DeskPause when I sign in to Windows", Checked = startAtSignIn == true,
+            startup = new CheckBox { Text = "Start DeskPaw when I sign in to Windows", Checked = startAtSignIn == true,
                 Enabled = startAtSignIn.HasValue, AutoSize = true };
             startup.Location = new Point(24, 351);
-            Controls.AddRange(new Control[] { fade, startup });
-            status = AddLabel(notice ?? "", 24, 387, 435, 48);
+            lockAfterWrongPins = new CheckBox { Text = "Lock Windows after 5 incorrect PIN attempts",
+                Checked = initial.LockAfterWrongPins, AutoSize = true, Location = new Point(24, 382) };
+            Controls.AddRange(new Control[] { fade, startup, lockAfterWrongPins });
+            status = AddLabel(notice ?? "", 24, 418, 435, 48);
             status.AccessibleName = "Settings status";
             status.ForeColor = Color.DarkRed;
             var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel };
-            cancel.SetBounds(240, 444, 93, 37);
+            cancel.SetBounds(240, 475, 93, 37);
             var ok = new Button { Text = "Save", UseVisualStyleBackColor = true };
-            ok.SetBounds(344, 444, 93, 37);
+            ok.SetBounds(344, 475, 93, 37);
             ok.Click += SaveSettings;
             Controls.Add(cancel);
             Controls.Add(ok);
@@ -99,7 +101,8 @@ namespace DeskPause
             uint mods = (uint)((ctrl.Checked ? 2 : 0) | (alt.Checked ? 1 : 0) |
                 (shift.Checked ? 4 : 0) | (win.Checked ? 8 : 0));
             if (mods == 0) { status.Text = "Select at least one shortcut modifier."; return; }
-            var next = new Preferences { Mods = mods, Key = (Keys)key.SelectedItem, FadeIndicator = fade.Checked };
+            var next = new Preferences { Mods = mods, Key = (Keys)key.SelectedItem,
+                FadeIndicator = fade.Checked, LockAfterWrongPins = lockAfterWrongPins.Checked };
             if (prior != null && pin.TextLength == 0 && confirm.TextLength == 0)
             {
                 next.Salt = prior.Salt;
@@ -134,7 +137,7 @@ namespace DeskPause
         private DateTime until;
         internal InputCheck()
         {
-            Text = "DeskPause input check";
+            Text = "DeskPaw input check";
             Font = new Font("Segoe UI", 10);
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(490, 260);
