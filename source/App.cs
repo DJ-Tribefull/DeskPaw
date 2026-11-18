@@ -10,7 +10,7 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("DeskPause")]
 [assembly: AssemblyDescription("Desktop input guard for unattended work")]
 [assembly: AssemblyProduct("DeskPause")]
-[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyVersion("1.3.1.0")]
 
 namespace DeskPause
 {
@@ -233,7 +233,7 @@ namespace DeskPause
                 pendingDigits = null;
                 Verify(digits, epoch);
             }
-            if (entry != null && entry.CanRelease && !guard.MouseButtonHeld)
+            if (entry != null && entry.Confirmed)
             {
                 Release();
                 Notify("Disarmed. Physical input is available.");

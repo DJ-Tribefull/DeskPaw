@@ -34,10 +34,10 @@ namespace DeskPause
         private readonly Action<byte[]> submit;
         private readonly byte[] digits;
         private readonly bool[] held = new bool[256];
-        private int length, heldCount, lastDigit;
+        private int length, lastDigit;
+        private int submitOnRelease = -1;
         internal bool Verifying { get; set; }
         internal bool Confirmed { get; set; }
-        internal bool CanRelease { get { return Confirmed && heldCount == 0; } }
 
         internal PinEntry(int pinLength, Action<byte[]> submit)
         {
@@ -55,16 +55,30 @@ namespace DeskPause
             if (key < 0 || key >= held.Length) return;
             if (up)
             {
-                if (held[key]) { held[key] = false; heldCount--; }
+                held[key] = false;
+                if (key == submitOnRelease)
+                {
+                    byte[] candidate = (byte[])digits.Clone();
+                    ClearDigits();
+                    Verifying = true;
+                    submit(candidate);
+                }
+                return;
+            }
+            if (Verifying || Confirmed) return;
+            // A security chord can move subsequent releases to another desktop.
+            // Discard an interrupted entry; the chord itself never unlocks the guard.
+            if (key == (int)Keys.Escape || key == (int)Keys.Delete || key == (int)Keys.ControlKey || key == (int)Keys.Menu ||
+                (key >= (int)Keys.LControlKey && key <= (int)Keys.RMenu))
+            {
+                Reset();
                 return;
             }
             if (held[key]) return; // Ignore auto-repeat, including the last digit.
-            held[key] = true;
-            heldCount++;
-            if (Verifying || Confirmed) return;
             if (unchecked((uint)(now - lastDigit)) > 10000) ClearDigits();
+            held[key] = true;
             lastDigit = now;
-            if (key == (int)Keys.Escape) { ClearDigits(); return; }
+            if (submitOnRelease >= 0) return;
             if (key == (int)Keys.Back)
             {
                 if (length > 0) digits[--length] = 0;
@@ -75,19 +89,14 @@ namespace DeskPause
             else if (key >= 0x60 && key <= 0x69) digit = key - 0x60;
             else return;
             digits[length++] = (byte)(48 + digit);
-            if (length != digits.Length) return;
-            byte[] candidate = (byte[])digits.Clone();
-            ClearDigits();
-            Verifying = true;
-            submit(candidate);
+            if (length == digits.Length) submitOnRelease = key;
         }
 
-        private void ClearDigits() { Array.Clear(digits, 0, digits.Length); length = 0; }
+        private void ClearDigits() { Array.Clear(digits, 0, digits.Length); length = 0; submitOnRelease = -1; }
         internal void Reset()
         {
             ClearDigits();
             Array.Clear(held, 0, held.Length);
-            heldCount = 0;
             Confirmed = Verifying = false;
         }
     }
@@ -99,8 +108,6 @@ namespace DeskPause
         // Zero for desktop-wide protection. The compatibility check only guards its own window.
         private readonly IntPtr testWindow;
         private IntPtr keyboard, mouse;
-        private int heldButtons;
-        internal bool MouseButtonHeld { get { return heldButtons != 0; } }
         internal int InjectedKeys, InjectedMouse;
 
         internal InputGuard(PinEntry pin, IntPtr testWindow)
@@ -154,24 +161,7 @@ namespace DeskPause
             if (code >= 0 && InTestArea(data))
             {
                 if (!PinEntry.IsInjectedMouse(Marshal.ReadInt32(data, 12)))
-                {
-                    int message = msg.ToInt32();
-                    switch (message)
-                    {
-                        case 0x201: heldButtons |= 1; break;
-                        case 0x202: heldButtons &= ~1; break;
-                        case 0x204: heldButtons |= 2; break;
-                        case 0x205: heldButtons &= ~2; break;
-                        case 0x207: heldButtons |= 4; break;
-                        case 0x208: heldButtons &= ~4; break;
-                        case 0x20b:
-                        case 0x20c:
-                            int bit = (Marshal.ReadInt32(data, 8) >> 16) == 1 ? 8 : 16;
-                            if (message == 0x20b) heldButtons |= bit; else heldButtons &= ~bit;
-                            break;
-                    }
                     return new IntPtr(1);
-                }
                 if (testWindow != IntPtr.Zero) InjectedMouse++;
             }
             return Native.CallNextHookEx(IntPtr.Zero, code, msg, data);

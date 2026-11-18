@@ -2,9 +2,9 @@
 
 DeskPause is a small Windows tray app for stepping away while Codex Computer Use keeps working on your visible desktop. Press a shortcut to block ordinary physical mouse and keyboard input. Type your PIN to take control again.
 
-**[Download DeskPause 1.3.0 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPause/raw/refs/heads/main/downloads/DeskPause-1.3.0-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPause/blob/main/downloads/DeskPause-1.3.0-win-x64.zip.sha256)
+**[Download DeskPause 1.3.1 for Windows x64 (portable ZIP)](https://github.com/DJ-Tribefull/DeskPause/raw/refs/heads/main/downloads/DeskPause-1.3.1-win-x64.zip)** · [SHA-256 checksum](https://github.com/DJ-Tribefull/DeskPause/blob/main/downloads/DeskPause-1.3.1-win-x64.zip.sha256)
 
-![DeskPause settings with an arming shortcut and optional PIN change](https://raw.githubusercontent.com/DJ-Tribefull/DeskPause/v1.3.0/docs/settings.png)
+![DeskPause settings with an arming shortcut and optional PIN change](https://raw.githubusercontent.com/DJ-Tribefull/DeskPause/v1.3.1/docs/settings.png)
 
 ## Get started
 
@@ -14,6 +14,8 @@ DeskPause is a small Windows tray app for stepping away while Codex Computer Use
 4. To resume, type the PIN on the physical keyboard and release the keys. Use the number row or the numpad with **Num Lock** on. The digits stay out of the focused app. You can leave the mouse pointer wherever it is.
 
 The shortcut picker includes punctuation and separate numpad keys. For **Ctrl+/** on a US keyboard, select **Ctrl** and **/**. For **Ctrl+Shift+/**, also select **Shift**. If Windows has already assigned your combination, the settings window lets you choose another.
+
+In the modern Settings panel, each PIN field has a **Show** button. Leaving the field and its button masks the digits again. You can return to the field and select **Show** again.
 
 ## Indicator and startup
 
@@ -30,6 +32,8 @@ For a desktop-wide check, open a blank text editor, arm DeskPause, and try a phy
 ## PIN entry and recovery
 
 **Backspace** removes the last digit. **Escape** clears the entry. A gap of more than ten seconds between keystrokes clears a partial entry. Five incorrect complete attempts request the Windows lock, which can pause desktop automation.
+
+If you open Task Manager through **Ctrl+Alt+Delete**, close it or return to the ordinary desktop before entering your PIN. The guard checks the PIN when you release its final digit. If a Windows prompt interrupted you midway, press **Escape** on the ordinary desktop and re-enter the full PIN.
 
 **Forgotten PIN:** Press **Ctrl+Alt+Delete**, choose **Lock**, and sign back into Windows. DeskPause disarms when Windows reports that your session was unlocked. Open **Settings** in the tray menu to choose a new PIN. When changing only your shortcut, leave both PIN fields blank.
 

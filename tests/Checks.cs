@@ -115,17 +115,34 @@ internal static class Checks
         entry.Key(0x62, false, 18); entry.Key(0x62, false, 19); entry.Key(0x62, true, 20);
         Enter(entry, "244", 22);
         entry.Key('6', false, 30);
-        Assert(submissions == 1 && Encoding.ASCII.GetString(captured) == "0022446", "edit, leading zero, numpad, repeat");
-        entry.Confirmed = true;
-        Assert(!entry.CanRelease, "held last digit stays swallowed");
-        entry.Key('6', true, 35);
-        Assert(entry.CanRelease, "release after last key-up");
+        Assert(submissions == 0, "held last digit stays swallowed");
+        entry.Key('6', false, 11035);
+        entry.Key('6', true, 11036);
+        Assert(submissions == 1 && Encoding.ASCII.GetString(captured) == "0022446", "submit on final release with leading zero, numpad and repeat");
+        entry.Reset();
+        entry.Key('0', false, 88);
+        Tap(entry, (int)Keys.Escape, 89);
+        Tap(entry, '0', 91);
+        Enter(entry, "58", 93);
+        entry.Key((int)Keys.LControlKey, false, 100);
+        entry.Key((int)Keys.LMenu, false, 101);
+        entry.Key((int)Keys.Delete, false, 102);
+        // Windows can deliver the three releases to its secure desktop.
+        Enter(entry, "0022446", 200);
+        Assert(submissions == 2 && prefs.Matches(captured), "correct PIN submitted after unobserved Ctrl+Alt+Delete releases");
         entry.Reset();
         Enter(entry, "777", 40); Enter(entry, "0022446", 11000);
-        Assert(submissions == 2 && Encoding.ASCII.GetString(captured) == "0022446", "stale digits expire");
+        Assert(submissions == 3 && Encoding.ASCII.GetString(captured) == "0022446", "stale digits expire");
         Enter(entry, "1234567", 12000);
-        Assert(submissions == 2, "busy verifier ignores further digits");
+        Assert(submissions == 3, "busy verifier ignores further digits");
         entry.Reset();
+        byte[] recovered = null;
+        var interrupted = new PinEntry(4, delegate(byte[] b) { recovered = b; });
+        Enter(interrupted, "123", 100);
+        interrupted.Key('4', false, 110);
+        Tap(interrupted, (int)Keys.Escape, 120);
+        Enter(interrupted, "4321", 130);
+        Assert(Encoding.ASCII.GetString(recovered) == "4321", "Escape recovers a missing final digit release");
 
         IntPtr packet = Marshal.AllocHGlobal(32);
         try
@@ -149,27 +166,19 @@ internal static class Checks
                     Marshal.WriteInt32(packet,8,0x10); keyProc(0,new IntPtr(0x100),packet);
                     Marshal.WriteInt32(packet,8,0x90); keyProc(0,new IntPtr(0x101),packet);
                 }
-                Assert(submissions == 2, "injected seven-digit sequence cannot submit PIN");
+                Assert(submissions == 3, "injected seven-digit sequence cannot submit PIN");
                 foreach (int key in Encoding.ASCII.GetBytes("0022446"))
                 {
                     Marshal.WriteInt32(packet,0,key);
                     Marshal.WriteInt32(packet,8,0); Assert(keyProc(0,new IntPtr(0x100),packet) == new IntPtr(1),"physical PIN down suppressed");
                     Marshal.WriteInt32(packet,8,0x80); Assert(keyProc(0,new IntPtr(0x101),packet) == new IntPtr(1),"physical PIN up suppressed");
                 }
-                Assert(submissions == 3 && prefs.Matches(captured), "physical PIN reaches real verifier");
+                Assert(submissions == 4 && prefs.Matches(captured), "physical PIN reaches real verifier");
                 foreach(int msg in new int[]{0x200,0x201,0x202,0x204,0x205,0x207,0x208,0x20a,0x20b,0x20c,0x20e})
                 {
                     Marshal.WriteInt32(packet,12,0);
                     Assert(mouseProc(0,new IntPtr(msg),packet) == new IntPtr(1),"physical mouse event suppressed");
                 }
-                mouseProc(0,new IntPtr(0x201),packet);
-                Assert(guard.MouseButtonHeld,"held mouse button tracked");
-                Marshal.WriteInt32(packet,12,1);
-                mouseProc(0,new IntPtr(0x202),packet);
-                Assert(guard.MouseButtonHeld,"injected mouse release independent of physical button");
-                Marshal.WriteInt32(packet,12,0);
-                mouseProc(0,new IntPtr(0x202),packet);
-                Assert(!guard.MouseButtonHeld,"physical mouse button released");
             }
         }
         finally { Marshal.FreeHGlobal(packet); }

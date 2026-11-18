@@ -5,6 +5,21 @@ const pages = { controls: "Guard controls", behavior: "Behavior", recovery: "Rec
 const modButtons = [...document.querySelectorAll("[data-mod]")];
 let model, mods = 0, saving = false;
 
+for (const button of document.querySelectorAll(".pin-control button")) {
+  const input = $(button.getAttribute("aria-controls"));
+  const name = input.id === "pin" ? "PIN" : "confirmation PIN";
+  function reveal(visible) {
+    input.type = visible ? "text" : "password";
+    button.textContent = visible ? "Hide" : "Show";
+    button.setAttribute("aria-label", button.textContent + " " + name);
+  }
+  button.addEventListener("click", () => reveal(input.type === "password"));
+  button.parentElement.addEventListener("focusout", ev => {
+    if (!button.parentElement.contains(ev.relatedTarget)) reveal(false);
+  });
+  window.addEventListener("blur", () => reveal(false));
+}
+
 function showPage(name) {
   for (const id of Object.keys(pages)) $(id).hidden = id !== name;
   for (const item of document.querySelectorAll("[data-page]")) {
@@ -86,7 +101,7 @@ $("save").addEventListener("click", save);
 $("cancel").addEventListener("click", () => { if (!saving) closePanel(); });
 document.addEventListener("keydown", ev => {
   if (ev.key === "Escape" && !saving && ev.target.tagName !== "SELECT") closePanel();
-  if ((ev.ctrlKey && ev.key.toLowerCase() === "s") || (ev.key === "Enter" && ev.target.type === "password")) {
+  if ((ev.ctrlKey && ev.key.toLowerCase() === "s") || (ev.key === "Enter" && ev.target.classList.contains("pin-input"))) {
     ev.preventDefault(); save();
   }
 });

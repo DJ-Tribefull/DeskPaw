@@ -38,12 +38,17 @@ fieldset{padding:0;border:0;min-width:0}
 legend,label{font-size:13px;font-weight:550;color:#d0d1ce}
 legend{padding:0;margin-bottom:7px}
 .modifiers{display:flex;gap:5px}
-.modifiers button,.secondary,select,input[type=password]{background:#222529;border:1px solid #45484b;border-radius:6px}
+.modifiers button,.secondary,select,.pin-input{background:#222529;border:1px solid #45484b;border-radius:6px}
 .modifiers button{padding:7px 10px;line-height:20px;flex:1;color:var(--muted)}
 .modifiers button[aria-pressed=true]{color:#f0cb92;border-color:#8a7050;background:#393128}
 .modifiers button:hover,.secondary:hover,select:hover{border-color:#898177}
-.key-select,.pin-fields label{display:flex;flex-direction:column;gap:7px}
-select,input[type=password]{height:36px;padding:5px 10px;color:#efefec;min-width:0;width:100%}
+.key-select,.pin-field{display:flex;flex-direction:column;gap:7px}
+select,.pin-input{height:36px;padding:5px 10px;color:#efefec;min-width:0;width:100%}
+.pin-control{position:relative}
+.pin-input{padding-right:52px}
+.pin-input::-ms-reveal{display:none}
+.pin-control button{position:absolute;right:5px;top:5px;height:26px;padding:0 6px;background:transparent;border:0;border-radius:4px;color:var(--accent);font-size:12px}
+.pin-control button:hover{background:#38332c}
 input[aria-invalid=true]{border-color:#eb9b91}
 .pin-section{border-top:1px solid var(--border);margin-top:24px;padding-top:19px}
 .pin-fields{grid-template-columns:1fr 1fr;margin-top:10px}

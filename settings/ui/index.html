@@ -32,8 +32,8 @@
         <div class="pin-section">
           <h2>Unlock PIN</h2>
           <div class="pin-fields">
-            <label><span id="pin-label">PIN</span><input id="pin" type="password" inputmode="numeric" autocomplete="new-password" spellcheck="false" aria-describedby="pin-hint"></label>
-            <label>Confirm PIN<input id="confirm" type="password" inputmode="numeric" autocomplete="new-password" spellcheck="false" aria-describedby="pin-hint"></label>
+            <div class="pin-field"><label id="pin-label" for="pin">PIN</label><div class="pin-control"><input class="pin-input" id="pin" type="password" inputmode="numeric" autocomplete="new-password" spellcheck="false" aria-describedby="pin-hint"><button type="button" aria-controls="pin" aria-label="Show PIN">Show</button></div></div>
+            <div class="pin-field"><label for="confirm">Confirm PIN</label><div class="pin-control"><input class="pin-input" id="confirm" type="password" inputmode="numeric" autocomplete="new-password" spellcheck="false" aria-describedby="pin-hint"><button type="button" aria-controls="confirm" aria-label="Show confirmation PIN">Show</button></div></div>
           </div>
           <p class="hint" id="pin-hint">Use 4–15 digits. Leading zeroes are allowed.</p>
         </div>
