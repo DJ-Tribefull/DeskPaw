@@ -1,0 +1,6 @@
+/DeskPause.exe
+/artifacts/
+.vs/
+*.pdb
+*.user
+settings.dat
